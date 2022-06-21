@@ -2,7 +2,7 @@ from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-import db
+from utils import db
 from models.server import Server
 
 
@@ -13,8 +13,14 @@ class AddServer(StatesGroup):
     waiting_for_server_password = State()
 
 
-async def add_server(message: types.Message):
+async def add_server_command(message: types.Message):
     await message.answer('Enter server name:')
+    await AddServer.waiting_for_server_name.set()
+
+
+async def add_server_callback(call: types.CallbackQuery, state: FSMContext):
+    await state.reset_data()
+    await call.message.answer('Enter server name:')
     await AddServer.waiting_for_server_name.set()
 
 
@@ -60,8 +66,8 @@ async def password_chosen(message: types.Message, state: FSMContext):
 
 
 def register_handlers_server(dp: Dispatcher):
-    dp.register_message_handler(add_server, commands='addServer')
-    dp.register_callback_query_handler(add_server, lambda call: call.data == 'add_server')
+    dp.register_message_handler(add_server_command, commands='addServer')
+    dp.register_callback_query_handler(add_server_callback, lambda call: call.data == 'add_server')
 
     dp.register_message_handler(name_chosen, state=AddServer.waiting_for_server_name)
     dp.register_message_handler(ip_chosen, state=AddServer.waiting_for_server_ip)

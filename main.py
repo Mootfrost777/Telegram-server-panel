@@ -1,12 +1,12 @@
 from aiogram import Bot, Dispatcher, types
-from handlers.addServer import register_handlers_server
+from handlers import addServer, listServers
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 import asyncio
 import logging
 import json
 
-import db
+from utils import db
 
 # Create the bot and dispatcher
 with open('config/default.json', 'r') as f:
@@ -30,7 +30,8 @@ async def main():
     await db.init_db()
 
     # Register handlers
-    register_handlers_server(dp)
+    addServer.register_handlers_server(dp)
+    listServers.register_list_servers_handlers(dp)
 
     # Set commands
     await set_commands()
@@ -41,9 +42,9 @@ async def main():
 
 async def get_main_menu_keyboard():
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton(text='Servers list', callback_data='add_server'))
-    keyboard.add(types.InlineKeyboardButton(text='Add server', callback_data='add_user'))
-    keyboard.add(types.InlineKeyboardButton(text='Seetings', callback_data='add_user'))
+    keyboard.add(types.InlineKeyboardButton(text='Servers list', callback_data='list_servers'))
+    keyboard.add(types.InlineKeyboardButton(text='Add server', callback_data='add_server'))
+    keyboard.add(types.InlineKeyboardButton(text='Seetings', callback_data='settings'))
     return keyboard
 
 

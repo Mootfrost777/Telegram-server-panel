@@ -9,7 +9,7 @@ global conn
 
 
 async def connect_to_db():
-    with open('config/default.json', 'r') as f:
+    with open('./config/default.json', 'r') as f:
         data = json.load(f)['db']
 
     global conn
@@ -103,7 +103,7 @@ async def get_server(server_id):
 
 async def get_servers(user_id):
     resp = await conn.fetch("""select * from servers where owner_id = $1""", user_id)
-    if resp is None:
+    if not resp:
         return {
             'status': 404,
             'message': 'Servers not found'
