@@ -1,9 +1,14 @@
+import datetime
+import requests
+
 from aiogram import Bot, Dispatcher, types
-from handlers import addServer, listServers
+from handlers import addServer, listServers, sendCommand
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
+
 import asyncio
-import logging
+
+import logging.config
 import json
 
 from utils import db
@@ -13,7 +18,13 @@ with open('config/default.json', 'r') as f:
     data = json.load(f)['bot']
 
 bot = Bot(token=data['token'])
+bot.debug = True
 dp = Dispatcher(bot, storage=MemoryStorage())
+
+date = str(datetime.datetime.today()).replace('.', '-')
+"""logging.basicConfig(level=logging.INFO,
+                    filename=f'logs/{date}.txt',
+                    filemode='a')"""
 logging.basicConfig(level=logging.INFO)
 
 
@@ -32,6 +43,7 @@ async def main():
     # Register handlers
     addServer.register_handlers_server(dp)
     listServers.register_list_servers_handlers(dp)
+    sendCommand.register_send_command_handlers(dp)
 
     # Set commands
     await set_commands()

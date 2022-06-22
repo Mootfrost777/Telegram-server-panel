@@ -1,10 +1,14 @@
 import os
+import json
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from utils import db
+
+with open('config/default.json', 'r') as f:
+    config = json.load(f)['page']
 
 
 class ListServers(StatesGroup):
@@ -15,7 +19,7 @@ class ListServers(StatesGroup):
     show_all = State()
 
 
-async def get_servers_page(message: types.Message, page: int, per_page: int, state: FSMContext):
+async def get_servers_page(message: types.Message, page: int, state: FSMContext):
     resp = await db.get_servers(message.chat.id)  # Тут почему-то данные пользователя в ключе chat
 
     if not resp['status'] != 404:
@@ -38,21 +42,36 @@ async def get_servers_page(message: types.Message, page: int, per_page: int, sta
             await message.answer('All servers are online!')
             return
 
-    result = f'You have {len(servers)} servers:\n'
-    for server in servers[page * per_page: (page + 1) * per_page]:
+    result = f'You have {len(servers)} server'
+    if len(servers) != 1:
+        result += 's'
+    result += ':\n'
+
+    for server in servers[(page - 1) * config['per_page']: page * config['per_page']]:
         result += f'{server.id} - {server.name}\n'
-    await message.answer(result, reply_markup=await get_page_markup(page, len(servers) // per_page))
+
+    total = len(servers) // config['per_page']
+    if total == 0:
+        total = 1
+    await message.answer(result, reply_markup=await get_page_markup(page, total))
+
+
+async def process_page_callback(call: types.CallbackQuery, state: FSMContext):
+    await get_servers_page(call.message, int(call.data.split('_')[1]), state)
 
 
 async def get_page_markup(page: int, total: int):
+    print(f'{page}-{total}')
     markup = types.InlineKeyboardMarkup()
-    if page == 0:
-        markup.add(types.InlineKeyboardButton('Next', callback_data='next'))
-    elif page == total - 1:
-        markup.add(types.InlineKeyboardButton('Previous', callback_data='previous'))
+    if page == 0 and page != total:
+        markup.add(types.InlineKeyboardButton('Next', callback_data=f'page_{page+1}'))
+    elif page == total and page != 1:
+        markup.add(types.InlineKeyboardButton('Previous', callback_data=f'page_{page-1}'))
+    elif page == total and page == 1:
+        return
     else:
-        markup.add(types.InlineKeyboardButton('Previous', callback_data='previous'))
-        markup.add(types.InlineKeyboardButton('Next', callback_data='next'))
+        markup.add(types.InlineKeyboardButton('Previous', callback_data=f'page_{page-1}'))
+        markup.add(types.InlineKeyboardButton('Next', callback_data=f'page_{page+1}'))
     return markup
 
 
@@ -76,25 +95,30 @@ async def list_servers_callback(call: types.CallbackQuery, state: FSMContext):
 
 async def show_online(call: types.CallbackQuery, state: FSMContext):
     await state.update_data(sort='online')
-    await get_servers_page(call.message, 0, 1, state)
+    await get_servers_page(call.message, 1, state)
 
 
 async def show_offline(call: types.CallbackQuery, state: FSMContext):
     await state.update_data(sort='offline')
-    await get_servers_page(call.message, 0, 1, state)
+    await get_servers_page(call.message, 1, state)
 
 
 async def show_all(call: types.CallbackQuery, state: FSMContext):
     await state.update_data(sort='all')
-    await get_servers_page(call.message, 0, 1, state)
+    await get_servers_page(call.message, 1, state)
 
 
 def register_list_servers_handlers(dp):
+    # Handlers for commands
     dp.register_message_handler(list_servers_command, commands='listServers')
     dp.register_callback_query_handler(list_servers_callback, lambda call: call.data == 'list_servers')
 
+    # Handlers for sort options
     dp.register_callback_query_handler(show_online, lambda call: call.data == 'show_only_online')
     dp.register_callback_query_handler(show_offline, lambda call: call.data == 'show_only_offline')
     dp.register_callback_query_handler(show_all, lambda call: call.data == 'show_all')
+
+    # Handlers for pages
+    dp.register_callback_query_handler(process_page_callback, lambda call: call.data.startswith('page'))
 
 

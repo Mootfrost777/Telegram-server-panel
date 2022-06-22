@@ -86,7 +86,7 @@ async def add_server(server):
     }
 
 
-async def get_server(server_id):
+async def get_server(server_id: int):
     resp = await conn.fetchrow("""select * from servers where id = $1""", server_id)
     if resp is None:
         return {
