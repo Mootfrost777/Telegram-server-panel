@@ -31,7 +31,11 @@ logging.basicConfig(level=logging.INFO)
 async def set_commands():
     await bot.set_my_commands(commands=[
         types.BotCommand(command='start', description='register user'),
-        types.BotCommand(command='help', description='show this message'),
+        types.BotCommand(command='help', description='show commands list'),
+        types.BotCommand(command='listServers', description='list servers'),
+        types.BotCommand(command='addServer', description='add server'),
+        types.BotCommand(command='sendCommand', description='execute command on server'),
+        types.BotCommand(command='menu', description='show main menu'),
     ])
 
 
