@@ -2,7 +2,7 @@
 Bot for controlling servers, remote executing commands. <br/>
 Official [app](https://github.com/Mootfrost777/Admin-panel-server-API/settings) to run on server
 
-#config/default.json
+# config/default.json
 ```
 {
   "db": {
