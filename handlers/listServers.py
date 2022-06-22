@@ -5,7 +5,7 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from utils import db
+from utils import db, checkServerConnection
 
 with open('config/default.json', 'r') as f:
     config = json.load(f)['page']
@@ -31,13 +31,13 @@ async def get_servers_page(message: types.Message, page: int, state: FSMContext)
 
     if data['sort'] == 'online':
         await message.answer('It may take a while to check connections...')
-        servers = [server for server in servers if os.system("ping -c 1 " + f'{server.ip}:{server.port}') == 0]
+        servers = [server for server in servers if await checkServerConnection.check_server_connection(server)]
         if not servers:
             await message.answer('No servers are online!')
             return
     elif data['sort'] == 'offline':
         await message.answer('It may take a while to check connections...')
-        servers = [server for server in servers if os.system("ping -c 1 " + f'{server.ip}:{server.port}') != 0]
+        servers = [server for server in servers if not await checkServerConnection.check_server_connection(server)]
         if not servers:
             await message.answer('All servers are online!')
             return
@@ -110,7 +110,7 @@ async def show_all(call: types.CallbackQuery, state: FSMContext):
 
 def register_list_servers_handlers(dp):
     # Handlers for commands
-    dp.register_message_handler(list_servers_command, commands='listServers')
+    dp.register_message_handler(list_servers_command, commands='listservers')
     dp.register_callback_query_handler(list_servers_callback, lambda call: call.data == 'list_servers')
 
     # Handlers for sort options

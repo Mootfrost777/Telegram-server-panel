@@ -2,7 +2,7 @@ import io
 import urllib.parse
 import requests
 import json
-from utils import db
+from utils import db, checkServerConnection
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -28,30 +28,32 @@ async def get_servers_keyboard(servers):
     return keyboard
 
 
-async def send_command_command(message: types.Message, state: FSMContext):
+async def select_server(message: types.Message, state: FSMContext):
     await state.update_data(command=message.text)
     await message.answer('Checking connections. This may take a while...')
     resp = await db.get_servers(message.from_user.id)
     if resp['status'] == 404:
         await message.answer('You have no servers. Please add one.')
         await state.finish()
+
     servers = resp['message']
-    # servers = [server for server in servers if os.system("ping -c 1 " + f'{server.ip}:{server.port}') == 0]
+    servers = [server for server in servers if await checkServerConnection.check_server_connection(server)]
+    if not servers:
+        await message.answer('No servers are online!')
+        await state.finish()
+        return
+
     await message.answer('Select server:', reply_markup=await get_servers_keyboard(servers))
+
+
+async def send_command_command(message: types.Message, state: FSMContext):
+    await select_server(message, state)
     await SendCommand.next()
 
 
 async def send_command_callback(call: types.CallbackQuery, state: FSMContext):
-    await state.update_data(command=call.message.text)
-    await call.message.answer('Checking connections. This may take a while...')
-    resp = await db.get_servers(call.message.from_user.id)
-    if resp['status'] == 404:
-        await call.message.answer('You have no servers. Please add one.')
-        await state.finish()
-    servers = resp['message']
-    # servers = [server for server in servers if os.system("ping -c 1 " + f'{server.ip}:{server.port}') == 0]
-    await call.message.answer('Select server:', reply_markup=await get_servers_keyboard(servers))
-    await SendCommand.waiting_for_command.set()
+    await select_server(call.message, state)
+    await SendCommand.next()
 
 
 async def server_selected(call: types.CallbackQuery, state: FSMContext):
@@ -83,12 +85,13 @@ async def dir_selected(message: types.Message, state: FSMContext):
 
 async def send_command(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    server = await db.get_server(int(data['server']))
-    server = server['message']
+    server = await db.get_server(int(data['server']))['message']
+
     params = {'command': data['command'], 'directory': data['dir']}
-    path = url.replace('{ip}', server.ip)\
+    path = url.replace('{ip}', server.ip) \
         .replace('{port}', str(server.port))
     path += urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
+
     try:
         resp = requests.post(path, timeout=20).json()
     except TimeoutError:
@@ -123,7 +126,7 @@ async def exit_send_command(call: types.CallbackQuery, state: FSMContext):
 
 
 def register_send_command_handlers(dp):
-    dp.register_message_handler(send_command_command, commands=['sendCommand'])
+    dp.register_message_handler(send_command_command, commands=['sendcommand'])
     dp.register_callback_query_handler(send_command_callback, lambda call: call.data == 'send_command')
 
     dp.register_callback_query_handler(server_selected, state=SendCommand.waiting_for_server)

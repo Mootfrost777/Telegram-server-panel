@@ -1,5 +1,4 @@
 import datetime
-import requests
 
 from aiogram import Bot, Dispatcher, types
 from handlers import addServer, listServers, sendCommand
@@ -32,10 +31,10 @@ async def set_commands():
     await bot.set_my_commands(commands=[
         types.BotCommand(command='start', description='register user'),
         types.BotCommand(command='help', description='show commands list'),
-        types.BotCommand(command='listServers', description='list servers'),
-        types.BotCommand(command='addServer', description='add server'),
-        types.BotCommand(command='sendCommand', description='execute command on server'),
-        types.BotCommand(command='menu', description='show main menu'),
+        types.BotCommand(command='listservers', description='list servers'),
+        types.BotCommand(command='addserver', description='add server'),
+        types.BotCommand(command='sendsommand', description='execute command on server'),
+        types.BotCommand(command='dash', description='show dashboard'),
     ])
 
 
